@@ -63,22 +63,17 @@ class QrCameraState extends State<QrCamera> {
                   asyncInitOnce(constraints.maxWidth, constraints.maxHeight),
               builder: (BuildContext context,
                   AsyncSnapshot<PreviewDetails> details) {
-                switch (details.connectionState) {
-                  case ConnectionState.none:
-                  case ConnectionState.waiting:
-                    var notStartedBuilder = widget.notStartedBuilder;
-                    return notStartedBuilder == null
-                        ? new Text("Camera Loading ...")
-                        : notStartedBuilder(context);
-                  case ConnectionState.done:
-                    return new Preview(
-                        previewDetails: details.data,
-                        targetWidth: constraints.maxWidth,
-                        targetHeight: constraints.maxHeight,
-                        fit: widget.fit);
-                  default:
-                    throw new AssertionError(
-                        "${details.connectionState} not supported.");
+                if(details.connectionState == ConnectionState.done && details.data != null) {
+                  return new Preview(
+                      previewDetails: details.data,
+                      targetWidth: constraints.maxWidth,
+                      targetHeight: constraints.maxHeight,
+                      fit: widget.fit);
+                } else {
+                  var notStartedBuilder = widget.notStartedBuilder;
+                  return notStartedBuilder == null
+                      ? new Text("Camera Loading ...")
+                      : notStartedBuilder(context);
                 }
               },
             ),
