@@ -25,17 +25,21 @@ class QrCamera extends StatefulWidget {
 class QrCameraState extends State<QrCamera> {
   QrCameraState();
 
-  Future<PreviewDetails> _details;
+  bool inited = false;
+  PreviewDetails details;
 
-  Future<PreviewDetails> asyncInitOnce(num width, num height) async {
-    if (_details == null) {
-      _details = QrMobileVision.start(
+  void initOnce(num width, num height) async {
+    if (!inited) {
+      inited = true;
+      var _details = await QrMobileVision.start(
         width: width.toInt(),
         height: height.toInt(),
         qrCodeHandler: widget.qrCodeHandler,
       );
+      setState(() {
+        details = _details;
+      });
     }
-    return _details;
   }
 
   @override
@@ -48,20 +52,18 @@ class QrCameraState extends State<QrCamera> {
   Widget build(BuildContext context) {
     return new LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
+        initOnce(constraints.maxWidth, constraints.maxHeight);
+        var content;
+        if (details != null) {
+          content = Preview(previewDetails: details, targetWidth: constraints.maxWidth, targetHeight: constraints.maxHeight, fit: widget.fit);
+        } else {
+          var notStartedBuilder = widget.notStartedBuilder;
+          content = notStartedBuilder == null ? new Text("Camera Loading ...") : notStartedBuilder(context);
+        }
         return new SizedBox(
           width: constraints.maxWidth,
           height: constraints.maxHeight,
-          child: new FutureBuilder(
-            future: asyncInitOnce(constraints.maxWidth, constraints.maxHeight),
-            builder: (BuildContext context, AsyncSnapshot<PreviewDetails> details) {
-              if (details.connectionState == ConnectionState.done && details.data != null) {
-                return new Preview(previewDetails: details.data, targetWidth: constraints.maxWidth, targetHeight: constraints.maxHeight, fit: widget.fit);
-              } else {
-                var notStartedBuilder = widget.notStartedBuilder;
-                return notStartedBuilder == null ? new Text("Camera Loading ...") : notStartedBuilder(context);
-              }
-            },
-          ),
+          child: content,
         );
       },
     );
