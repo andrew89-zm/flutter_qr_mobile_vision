@@ -8,9 +8,7 @@ import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:qr_mobile_vision/qr_mobile_vision.dart';
 
 class QrCamera extends StatefulWidget {
-  QrCamera(
-      {this.fit = BoxFit.cover, this.qrCodeCallback, this.notStartedBuilder})
-      : assert(fit != null);
+  QrCamera({this.fit = BoxFit.cover, this.qrCodeCallback, this.notStartedBuilder}) : assert(fit != null);
 
   final BoxFit fit;
   final ValueChanged<String> qrCodeCallback;
@@ -27,21 +25,17 @@ class QrCamera extends StatefulWidget {
 class QrCameraState extends State<QrCamera> {
   QrCameraState();
 
-  PreviewDetails _details;
+  Future<PreviewDetails> _details;
 
   Future<PreviewDetails> asyncInitOnce(num width, num height) async {
-    if (_details != null) {
-      return _details;
+    if (_details == null) {
+      _details = QrMobileVision.start(
+        width: width.toInt(),
+        height: height.toInt(),
+        qrCodeHandler: widget.qrCodeHandler,
+      );
     }
-
-    var previewDetails = await QrMobileVision.start(
-      width: width.toInt(),
-      height: height.toInt(),
-      qrCodeHandler: widget.qrCodeHandler,
-    );
-
-    this._details = previewDetails;
-    return previewDetails;
+    return _details;
   }
 
   @override
@@ -54,42 +48,21 @@ class QrCameraState extends State<QrCamera> {
   Widget build(BuildContext context) {
     return new LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        if (_details == null) {
-          return new SizedBox(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            child: new FutureBuilder(
-              future:
-                  asyncInitOnce(constraints.maxWidth, constraints.maxHeight),
-              builder: (BuildContext context,
-                  AsyncSnapshot<PreviewDetails> details) {
-                if(details.connectionState == ConnectionState.done && details.data != null) {
-                  return new Preview(
-                      previewDetails: details.data,
-                      targetWidth: constraints.maxWidth,
-                      targetHeight: constraints.maxHeight,
-                      fit: widget.fit);
-                } else {
-                  var notStartedBuilder = widget.notStartedBuilder;
-                  return notStartedBuilder == null
-                      ? new Text("Camera Loading ...")
-                      : notStartedBuilder(context);
-                }
-              },
-            ),
-          );
-        } else {
-          return SizedBox(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            child: new Preview(
-              previewDetails: _details,
-              targetWidth: constraints.maxWidth,
-              targetHeight: constraints.maxHeight,
-              fit: widget.fit,
-            ),
-          );
-        }
+        return new SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: new FutureBuilder(
+            future: asyncInitOnce(constraints.maxWidth, constraints.maxHeight),
+            builder: (BuildContext context, AsyncSnapshot<PreviewDetails> details) {
+              if (details.connectionState == ConnectionState.done && details.data != null) {
+                return new Preview(previewDetails: details.data, targetWidth: constraints.maxWidth, targetHeight: constraints.maxHeight, fit: widget.fit);
+              } else {
+                var notStartedBuilder = widget.notStartedBuilder;
+                return notStartedBuilder == null ? new Text("Camera Loading ...") : notStartedBuilder(context);
+              }
+            },
+          ),
+        );
       },
     );
   }
@@ -119,8 +92,7 @@ class Preview extends StatelessWidget {
 
     return new NativeDeviceOrientationReader(
       builder: (context) {
-        var nativeOrientation =
-            NativeDeviceOrientationReader.orientation(context);
+        var nativeOrientation = NativeDeviceOrientationReader.orientation(context);
 
         int baseOrientation = 0;
         if (orientation != 0 && (width > height)) {
